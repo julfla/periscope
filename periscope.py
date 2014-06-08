@@ -27,12 +27,10 @@ from periscope.version import VERSION
 
 LOG = logging.getLogger(__name__)
 
-SUPPORTED_FORMATS = (
-    'video/x-msvideo',
-     'video/quicktime',
-     'video/x-matroska',
-      'video/mp4'
-)
+SUPPORTED_FORMATS = ('video/x-msvideo',
+                     'video/quicktime',
+                     'video/x-matroska',
+                     'video/mp4')
 
 
 def download_subtitles(periscope_client, videos, options):

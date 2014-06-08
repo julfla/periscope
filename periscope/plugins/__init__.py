@@ -37,4 +37,4 @@ from periscope.plugins.TheSubDB import TheSubDB
 # API not working
 #from Podnapisi2 import Podnapisi
 
-PLUGINS = [OpenSubtitles, TheSubDB]
+PLUGINS = [OpenSubtitles]
