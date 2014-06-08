@@ -17,18 +17,22 @@
 #    You should have received a copy of the GNU General Public License
 #    along with periscope; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
 import os
 import mimetypes
 from optparse import OptionParser
 import logging
-import periscope
 
-from version import VERSION
+from periscope.periscope import Periscope
+from periscope.version import VERSION
 
 log = logging.getLogger(__name__)
 
-SUPPORTED_FORMATS = 'video/x-msvideo', 'video/quicktime', 'video/x-matroska', 'video/mp4'
+SUPPORTED_FORMATS = (
+    'video/x-msvideo',
+     'video/quicktime',
+     'video/x-matroska',
+      'video/mp4'
+)
 
 def main():
     '''Download subtitles'''
@@ -69,7 +73,7 @@ def main():
             options.cache_folder = os.path.join(home, ".config", "periscope")
 
 
-    periscope_client = periscope.Periscope(options.cache_folder)
+    periscope_client = Periscope(options.cache_folder)
 
     if options.show_active_plugins:
         print "Active plugins: "
