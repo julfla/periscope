@@ -43,20 +43,11 @@ SUPPORTED_FORMATS = (
 def order_subtitles(subs):
     """reorders the subtitles according to the languages then the website
     """
-    try:
-        from collections import defaultdict
-        subtitles = defaultdict(list)
-        for sub in subs:
-            subtitles[sub["lang"]].append(sub)
-        return subtitles
-
-    except ImportError: # Don't use Python 2.5
-        subtitles = {}
-        for sub in subs:
-            # return subtitles[s["lang"]], if it does not exist,
-            # set it to [] and return it, then append the subtitle
-            subtitles.setdefault(sub["lang"], []).append(sub)
-        return subtitles
+    from collections import defaultdict
+    subtitles = defaultdict(list)
+    for sub in subs:
+        subtitles[sub["lang"]].append(sub)
+    return subtitles
 
 
 def select_best_subtitles(subtitles, langs=None, interactive=False):
@@ -77,19 +68,19 @@ def select_best_subtitles(subtitles, langs=None, interactive=False):
                 return subtitles[lang][0]
 
     else:
-        return select_subtitles_interactive(subtitles, langs)
+        interactive_subtitles = []
+        for lang in langs:
+            if subtitles.has_key(lang) and len(subtitles[lang]):
+                for sub in subtitles[lang]:
+                    interactive_subtitles.append(sub)
+
+        return select_subtitles_interactive(interactive_subtitles)
 
 
-def select_subtitles_interactive(subtitles, langs):
+def select_subtitles_interactive(interactive_subtitles):
     """
     Returns the subtitle selected by the user
     """
-    interactive_subtitles = []
-    for lang in langs:
-        if subtitles.has_key(lang) and len(subtitles[lang]):
-            for sub in subtitles[lang]:
-                interactive_subtitles.append(sub)
-
     for i, sub in enumerate(interactive_subtitles):
         print "[%d]: %s" % (i, sub["release"])
 
@@ -108,9 +99,11 @@ def select_subtitles_interactive(subtitles, langs):
     return None  # Could not find subtitles
 
 
-def guess_file_data(filename):
-    subdb = plugins.SubtitleDatabase.SubtitleDB(None)
-    return subdb.guess_file_data(filename)
+def list_existing_plugins():
+    """ List all possible plugins from the plugin folder
+    """
+    return [x.__name__ for x in  plugins.
+        SubtitleDatabase.SubtitleDB.__subclasses__()]
 
 
 class Periscope(object):
@@ -162,7 +155,8 @@ class Periscope(object):
         config_file.close()
 
     def get_prefered_plugins(self):
-        """ Get the prefered plugins from the config file """
+        """ Get the prefered plugins from the config file
+        """
         config_plugins = self.config.get("DEFAULT", "plugins")
         if not config_plugins or config_plugins.strip() == "":
             return self.listExistingPlugins()
@@ -171,14 +165,16 @@ class Periscope(object):
             return [x.strip() for x in config_plugins.split(",")]
 
     def set_prefered_plugins(self, new_plugins):
-        """ Update the config file to set the prefered plugins) """
+        """ Update the config file to set the prefered plugins)
+        """
         self.config.set("DEFAULT", "plugins", ",".join(new_plugins))
         config_file = open(self.config_file, "w")
         self.config.write(config_file)
         config_file.close()
 
     def get_prefered_naming(self):
-        """ Get the prefered naming convention from the config file """
+        """ Get the prefered naming convention from the config file
+        """
         try:
             lang_in_name = self.config.getboolean("DEFAULT", "lang-in-name")
             LOG.info("lang-in-name read from config: " + str(lang_in_name))
@@ -204,25 +200,23 @@ class Periscope(object):
     prefered_naming = property(get_prefered_naming, set_prefered_naming)
 
     def deactivate_plugin(self, plugin_name):
-        """ Remove a plugin from the list """
+        """ Remove a plugin from the list
+        """
         self.plugin_names -= plugin_name
         self.set_prefered_plugins(self.plugin_names)
 
     def activate_plugin(self, plugin_name):
-        """ Activate a plugin """
+        """ Activate a plugin
+        """
         if plugin_name not in self.listExistingPlugins():
             raise ImportError("No plugin with the name %s exists" %plugin_name)
         self.plugin_names += plugin_name
         self.set_prefered_plugins(self.plugin_names)
 
     def list_active_plugins(self):
-        """ Return all active plugins """
+        """ Return all active plugins
+        """
         return self.plugin_names
-
-    def list_existing_plugins(self):
-        """ List all possible plugins from the plugin folder """
-        return [x.__name__ for x in  plugins.
-            SubtitleDatabase.SubtitleDB.__subclasses__()]
 
     def list_subtitles(self, filename, langs=None):
         """
@@ -258,8 +252,6 @@ class Periscope(object):
                         if sub["lang"] in langs:
                             subtitles += [sub] # Add an array with just that sub
 
-        if len(subtitles) == 0:
-            return []
         return subtitles
 
     def download_subtitle(self, filename, langs=None, interactive=False):
@@ -276,6 +268,8 @@ class Periscope(object):
             return None
 
     def attempt_download_subtitle(self, subtitles, langs, interactive=False):
+        """ Tries to download the best available subtitle
+        """
         subtitle = self.select_best_subtitles(subtitles, langs, interactive)
         if subtitle:
             LOG.info("Trying to download subtitle: {}".format(subtitle['link']))
