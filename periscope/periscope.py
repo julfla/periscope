@@ -20,7 +20,7 @@
 from __future__ import absolute_import
 
 import sys
-from os import mkdir, path
+import os
 import threading
 import logging
 from locale import getdefaultlocale
@@ -108,14 +108,14 @@ class Periscope(object):
              "plugins" : "",
              "lang-in-name": "no",
         })
-        self.config_file = path.join(cache_folder, "config")
+        self.config_file = os.path.join(cache_folder, "config")
         self.cache_path = cache_folder
 
-        if not path.exists(self.config_file):
-            folder = path.dirname(self.config_file)
-            if not path.exists(folder):
+        if not os.path.exists(self.config_file):
+            folder = os.path.dirname(self.config_file)
+            if not os.path.exists(folder):
                 LOG.info("Creating folder {}".format(folder))
-                mkdir(folder)
+                os.mkdir(folder)
                 LOG.info("Creating config file")
                 config_file = open(self.config_file, "w")
                 self.config.write(config_file)
