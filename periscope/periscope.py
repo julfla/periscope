@@ -98,12 +98,6 @@ def select_subtitles_interactive(interactive_subtitles):
     return None  # Could not find subtitles
 
 
-def list_existing_plugins():
-    """ List all possible plugins from the plugin folder """
-    return [x.__name__ for x in  plugins.
-        SubtitleDatabase.SubtitleDB.__subclasses__()]
-
-
 class Periscope(object):
     """ Main Periscope class """
 
@@ -154,7 +148,7 @@ class Periscope(object):
         """ Get the prefered plugins from the config file. """
         config_plugins = self.config.get("DEFAULT", "plugins")
         if not config_plugins or config_plugins.strip() == "":
-            return list_existing_plugins()
+            return self.list_existing_plugins()
         else :
             LOG.info("plugins read from config : " + config_plugins)
             return [x.strip() for x in config_plugins.split(",")]
@@ -204,9 +198,13 @@ class Periscope(object):
         self.set_prefered_plugins(self.plugin_names)
 
     def list_active_plugins(self):
-        """ Return all active plugins
-        """
+        """ Return all active plugins. """
         return self.plugin_names
+
+    @classmethod
+    def list_existing_plugins(cls):
+        """ List all possible plugins from the plugin folder """
+        return plugins.PLUGINS
 
     def list_subtitles(self, filename, langs=None):
         """
