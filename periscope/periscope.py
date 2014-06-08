@@ -17,6 +17,7 @@
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with periscope; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+from __future__ import absolute_import
 
 import sys
 import os
@@ -28,7 +29,7 @@ from Queue import Queue
 import traceback
 import ConfigParser
 
-import plugins
+from periscope.plugins import PLUGINS
 
 
 LOG = logging.getLogger(__name__)
@@ -122,7 +123,7 @@ class Periscope(object):
         else:
             self.config.read(self.config_file)
 
-        self.plugin_names = self.get_prefered_plugins()
+        self.plugins = self.get_prefered_plugins()
         self._prefered_languages = None
 
     def get_prefered_languages(self):
@@ -185,26 +186,26 @@ class Periscope(object):
     prefered_plugins = property(get_prefered_plugins, set_prefered_plugins)
     prefered_naming = property(get_prefered_naming, set_prefered_naming)
 
-    def deactivate_plugin(self, plugin_name):
+    def deactivate_plugin(self, plugin):
         """ Remove a plugin from the list. """
-        self.plugin_names -= plugin_name
-        self.set_prefered_plugins(self.plugin_names)
+        self.plugins -= plugin
+        self.set_prefered_plugins(self.plugins)
 
-    def activate_plugin(self, plugin_name):
+    def activate_plugin(self, plugin):
         """ Activate a plugin. """
-        if plugin_name not in self.list_existing_plugins():
-            raise ImportError("No plugin with the name %s exists" %plugin_name)
-        self.plugin_names += plugin_name
-        self.set_prefered_plugins(self.plugin_names)
+        if plugin not in self.list_existing_plugins():
+            raise ImportError("No plugin with the name %s exists" %plugin)
+        self.plugins += plugin
+        self.set_prefered_plugins(self.plugins)
 
     def list_active_plugins(self):
         """ Return all active plugins. """
-        return self.plugin_names
+        return self.plugins
 
     @classmethod
     def list_existing_plugins(cls):
         """ List all possible plugins from the plugin folder """
-        return plugins.PLUGINS
+        return PLUGINS
 
     def list_subtitles(self, filename, langs=None):
         """
@@ -218,9 +219,9 @@ class Periscope(object):
             format(filename, langs))
         subtitles = []
         queue = Queue()
-        for name in self.plugin_names:
+        for plugin_class in self.plugins:
             try :
-                plugin = getattr(plugins, name)(self.config, self.cache_path)
+                plugin = plugin_class(self.config, self.cache_path)
                 LOG.info("Searching on {}".format(plugin.__class__.__name__))
                 thread = threading.Thread(
                     target=plugin.searchInThread,
@@ -230,7 +231,7 @@ class Periscope(object):
                 LOG.error("Plugin %s is not a valid plugin name. Skipping it.")
 
         # Get data from the queue and wait till we have a result
-        for name in self.plugin_names:
+        for _ in self.plugins:
             subs = queue.get(True)
             if subs and len(subs) > 0:
                 if not langs:
