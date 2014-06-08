@@ -41,8 +41,7 @@ SUPPORTED_FORMATS = (
 
 
 def order_subtitles(subs):
-    """reorders the subtitles according to the languages then the website
-    """
+    """ reorder the subtitles according to the languages then the website """
     from collections import defaultdict
     subtitles = defaultdict(list)
     for sub in subs:
@@ -52,7 +51,7 @@ def order_subtitles(subs):
 
 def select_best_subtitles(subtitles, langs=None, interactive=False):
     """
-    Searches subtitles from plugins and returns the first subtitle
+    Search subtitles from plugins and returns the first subtitle
     from candidates or the one selected by the user if interactive = True
     """
     if not subtitles:
@@ -100,8 +99,7 @@ def select_subtitles_interactive(interactive_subtitles):
 
 
 def list_existing_plugins():
-    """ List all possible plugins from the plugin folder
-    """
+    """ List all possible plugins from the plugin folder """
     return [x.__name__ for x in  plugins.
         SubtitleDatabase.SubtitleDB.__subclasses__()]
 
@@ -134,8 +132,7 @@ class Periscope(object):
         self._prefered_languages = None
 
     def get_prefered_languages(self):
-        """ Get the prefered language from the config file
-        """
+        """ Get the prefered language from the config file. """
         config_lang = self.config.get("DEFAULT", "lang")
         LOG.info("lang read from config: " + config_lang)
         if config_lang == "":
@@ -147,16 +144,14 @@ class Periscope(object):
             return [x.strip() for x in config_lang.split(",")]
 
     def set_prefered_languages(self, langs):
-        """ Update the config file to set the prefered language
-        """
+        """ Update the config file to set the prefered language. """
         self.config.set("DEFAULT", "lang", ",".join(langs))
         config_file = open(self.config_file, "w")
         self.config.write(config_file)
         config_file.close()
 
     def get_prefered_plugins(self):
-        """ Get the prefered plugins from the config file
-        """
+        """ Get the prefered plugins from the config file. """
         config_plugins = self.config.get("DEFAULT", "plugins")
         if not config_plugins or config_plugins.strip() == "":
             return list_existing_plugins()
@@ -165,16 +160,14 @@ class Periscope(object):
             return [x.strip() for x in config_plugins.split(",")]
 
     def set_prefered_plugins(self, new_plugins):
-        """ Update the config file to set the prefered plugins)
-        """
+        """ Update the config file to set the prefered plugins). """
         self.config.set("DEFAULT", "plugins", ",".join(new_plugins))
         config_file = open(self.config_file, "w")
         self.config.write(config_file)
         config_file.close()
 
     def get_prefered_naming(self):
-        """ Get the prefered naming convention from the config file
-        """
+        """ Get the prefered naming convention from the config file. """
         try:
             lang_in_name = self.config.getboolean("DEFAULT", "lang-in-name")
             LOG.info("lang-in-name read from config: " + str(lang_in_name))
@@ -183,8 +176,7 @@ class Periscope(object):
         return lang_in_name
 
     def set_prefered_naming(self, lang_in_name):
-        """ Update the config file to set the prefered naming convention
-        """
+        """ Update the config file to set the prefered naming convention. """
         self.config.set(
             'DEFAULT',
              'lang-in-name',
@@ -200,14 +192,12 @@ class Periscope(object):
     prefered_naming = property(get_prefered_naming, set_prefered_naming)
 
     def deactivate_plugin(self, plugin_name):
-        """ Remove a plugin from the list
-        """
+        """ Remove a plugin from the list. """
         self.plugin_names -= plugin_name
         self.set_prefered_plugins(self.plugin_names)
 
     def activate_plugin(self, plugin_name):
-        """ Activate a plugin
-        """
+        """ Activate a plugin. """
         if plugin_name not in self.list_existing_plugins():
             raise ImportError("No plugin with the name %s exists" %plugin_name)
         self.plugin_names += plugin_name
@@ -220,7 +210,7 @@ class Periscope(object):
 
     def list_subtitles(self, filename, langs=None):
         """
-        Searches subtitles within the active plugins and returns
+        Search subtitles within the active plugins and returns
         all found matching subtitles ordered by language then by plugin.
         """
         #if not os.path.isfile(filename):
@@ -256,8 +246,8 @@ class Periscope(object):
 
     def download_subtitles(self, filename, langs=None, interactive=False):
         """
-        Takes a filename and a language and creates ONE subtitle
-        through plugins. If interactive == True asks before downloading
+        Take a filename and a language and creates ONE subtitle
+        through plugins. If interactive == True asks before downloading.
         """
         subtitles = self.list_subtitles(filename, langs)
         if subtitles:
@@ -268,10 +258,13 @@ class Periscope(object):
             return None
 
     def attempt_download_subtitle(self, subtitles, langs, interactive=False):
-        """ Tries to download the best available subtitle
-        """
+        """ Try to download the best available subtitle. """
         subtitle = select_best_subtitles(subtitles, langs, interactive)
-        if subtitle:
+        if not subtitle:
+            LOG.error("No subtitles could be chosen.")
+            return None
+
+        else:
             LOG.info("Trying to download subtitle: {}".format(subtitle['link']))
 
             #Download the subtitle
@@ -294,6 +287,3 @@ class Periscope(object):
                     format(etype, evalue, etb))
                 subtitles.remove(subtitle)
                 return self.attempt_download_subtitle(subtitles, langs)
-        else :
-            LOG.error("No subtitles could be chosen.")
-            return None

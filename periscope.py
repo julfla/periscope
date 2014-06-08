@@ -22,7 +22,7 @@ import mimetypes
 from optparse import OptionParser
 import logging
 
-from periscope.periscope import Periscope
+from periscope.periscope import Periscope, list_existing_plugins
 from periscope.version import VERSION
 
 log = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ def main():
 
     if options.show_plugins:
         print "All plugins: "
-        plugins = periscope_client.list_existing_plugins()
+        plugins = list_existing_plugins()
         for plugin in plugins:
             print "%s" %(plugin)
         exit()
