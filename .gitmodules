@@ -1,0 +1,3 @@
+[submodule "Watcher"]
+	path = Watcher
+	url = git@github.com:splitbrain/Watcher.git
