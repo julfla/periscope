@@ -48,13 +48,15 @@ def download_subtitles(periscope_client, videos, options):
         if sub:
             subs.append(sub)
 
-    LOG.info("*"*50)
-    LOG.info("Downloaded {} subtitles".format(len(subs)))
-    for sub in subs:
-        LOG.info(sub['lang'] + " - " + sub['subtitlepath'])
-    LOG.info("*"*50)
     if len(subs) == 0:
         exit(1)
+    else:
+        LOG.info("*"*50)
+        LOG.info("Downloaded {} subtitles".format(len(subs)))
+        for sub in subs:
+            LOG.info(sub['lang'] + " - " + sub['subtitlepath'])
+            LOG.info("*"*50)
+
 
 
 def main():
