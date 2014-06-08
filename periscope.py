@@ -24,6 +24,8 @@ from optparse import OptionParser
 import logging
 import periscope
 
+from version import VERSION
+
 log = logging.getLogger(__name__)
 
 SUPPORTED_FORMATS = ('video/x-msvideo',
@@ -98,14 +100,14 @@ def main():
 
     if options.show_active_plugins:
         print "Active plugins: "
-        plugins = periscope.listActivePlugins()
+        plugins = periscope_client.list_active_plugins()
         for plugin in plugins:
             print plugin
         exit()
 
     if options.show_plugins:
         print "All plugins: "
-        plugins = periscope.listExistingPlugins()
+        plugins = periscope_client.list_existing_plugins()
         for plugin in plugins:
             print plugin
         exit()
@@ -116,6 +118,9 @@ def main():
         print "No video file supplied."
         print parser.print_help()
         exit()
+
+    if options.queries:
+        args += options.queries
     videos = []
     for arg in args:
         videos += recursive_search(arg, options)
@@ -124,10 +129,10 @@ def main():
     for arg in videos:
         if not options.langs:  # Look into the config file
             log.info("No lang given, looking into config file")
-            langs = periscope_client.preferedLanguages
+            langs = periscope_client.prefered_languages
         else:
             langs = options.langs
-        sub = periscope_client.downloadSubtitle(arg, langs)
+        sub = periscope_client.download_subtitles(arg, langs)
         if sub:
             subs.append(sub)
 
