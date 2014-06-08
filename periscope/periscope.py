@@ -159,7 +159,7 @@ class Periscope(object):
         """
         config_plugins = self.config.get("DEFAULT", "plugins")
         if not config_plugins or config_plugins.strip() == "":
-            return self.listExistingPlugins()
+            return list_existing_plugins()
         else :
             LOG.info("plugins read from config : " + config_plugins)
             return [x.strip() for x in config_plugins.split(",")]
@@ -208,7 +208,7 @@ class Periscope(object):
     def activate_plugin(self, plugin_name):
         """ Activate a plugin
         """
-        if plugin_name not in self.listExistingPlugins():
+        if plugin_name not in self.list_existing_plugins():
             raise ImportError("No plugin with the name %s exists" %plugin_name)
         self.plugin_names += plugin_name
         self.set_prefered_plugins(self.plugin_names)
@@ -254,7 +254,7 @@ class Periscope(object):
 
         return subtitles
 
-    def download_subtitle(self, filename, langs=None, interactive=False):
+    def download_subtitles(self, filename, langs=None, interactive=False):
         """
         Takes a filename and a language and creates ONE subtitle
         through plugins. If interactive == True asks before downloading
@@ -270,7 +270,7 @@ class Periscope(object):
     def attempt_download_subtitle(self, subtitles, langs, interactive=False):
         """ Tries to download the best available subtitle
         """
-        subtitle = self.select_best_subtitles(subtitles, langs, interactive)
+        subtitle = select_best_subtitles(subtitles, langs, interactive)
         if subtitle:
             LOG.info("Trying to download subtitle: {}".format(subtitle['link']))
 

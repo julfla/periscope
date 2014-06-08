@@ -24,6 +24,8 @@ from optparse import OptionParser
 import logging
 import periscope
 
+from version import VERSION
+
 log = logging.getLogger(__name__)
 
 SUPPORTED_FORMATS = 'video/x-msvideo', 'video/quicktime', 'video/x-matroska', 'video/mp4'
@@ -31,7 +33,7 @@ SUPPORTED_FORMATS = 'video/x-msvideo', 'video/quicktime', 'video/x-matroska', 'v
 def main():
     '''Download subtitles'''
     # parse command line options
-    parser = OptionParser("usage: %prog [options] file1 file2", version = periscope.VERSION)
+    parser = OptionParser("usage: %prog [options] file1 file2", version = VERSION)
     parser.add_option("-l", "--language", action="append", dest="langs", help="wanted language (ISO 639-1 two chars) for the subtitles (fr, en, ja, ...). If none is specified will download a subtitle in any language. This option can be used multiple times like %prog -l fr -l en file1 will try to download in french and then in english if no french subtitles are found.")
     parser.add_option("-f", "--force", action="store_true", dest="force_download", help="force download of a subtitle even there is already one present")
     parser.add_option("-q", "--query", action="append", dest="queries", help="query to send to the subtitles website")
@@ -41,7 +43,7 @@ def main():
     parser.add_option("--quiet", action="store_true", dest="quiet", help="run in quiet mode (only show warn and error messages)")
     parser.add_option("--debug", action="store_true", dest="debug", help="set the logging level to debug")
     (options, args) = parser.parse_args()
-    
+
     if not args:
         print parser.print_help()
         exit()
@@ -53,7 +55,7 @@ def main():
         logging.basicConfig(level=logging.WARN)
     else :
         logging.basicConfig(level=logging.INFO)
-        
+
 
     if not options.cache_folder:
         try:
@@ -66,23 +68,23 @@ def main():
                 exit()
             options.cache_folder = os.path.join(home, ".config", "periscope")
 
-    
+
     periscope_client = periscope.Periscope(options.cache_folder)
-        
+
     if options.show_active_plugins:
         print "Active plugins: "
-        plugins = periscope_client.listActivePlugins()
+        plugins = periscope_client.list_active_plugins()
         for plugin in plugins:
             print "%s" %(plugin)
         exit()
-        
+
     if options.show_plugins:
         print "All plugins: "
-        plugins = periscope_client.listExistingPlugins()
+        plugins = periscope_client.list_existing_plugins()
         for plugin in plugins:
             print "%s" %(plugin)
         exit()
-            
+
     if options.queries: args += options.queries
     videos = []
     for arg in args:
@@ -92,13 +94,13 @@ def main():
     for arg in videos:
         if not options.langs: #Look into the config
             log.info("No lang given, looking into config file")
-            langs = periscope_client.preferedLanguages
+            langs = periscope_client.prefered_languages
         else:
             langs = options.langs
-        sub = periscope_client.downloadSubtitle(arg, langs)
+        sub = periscope_client.download_subtitles(arg, langs)
         if sub:
             subs.append(sub)
-    
+
     log.info("*"*50)
     log.info("Downloaded %s subtitles" %len(subs))
     for s in subs:
@@ -129,6 +131,6 @@ def recursive_search(entry, options):
         else :
             log.info("%s mimetype is '%s' which is not a supported video format (%s)" %(entry, mimetype, SUPPORTED_FORMATS))
     return files
-    
+
 if __name__ == "__main__":
     main()
