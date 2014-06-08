@@ -129,7 +129,7 @@ def main():
         print "All plugins: "
         plugins = periscope_client.list_existing_plugins()
         for plugin in plugins:
-            print plugin.__name__
+            print plugin
         exit()
 
     if options.queries:

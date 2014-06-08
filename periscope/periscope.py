@@ -29,7 +29,7 @@ from Queue import Queue
 import traceback
 import ConfigParser
 
-from periscope.plugins import PLUGINS
+import periscope.plugins as plugins
 
 
 LOG = logging.getLogger(__name__)
@@ -155,7 +155,7 @@ class Periscope(object):
             return [x.strip() for x in config_plugins.split(",")]
 
     def set_prefered_plugins(self, new_plugins):
-        """ Update the config file to set the prefered plugins). """
+        """ Update the config file to set the prefered plugins. """
         self.config.set("DEFAULT", "plugins", ",".join(new_plugins))
         config_file = open(self.config_file, "w")
         self.config.write(config_file)
@@ -205,7 +205,7 @@ class Periscope(object):
     @classmethod
     def list_existing_plugins(cls):
         """ List all possible plugins from the plugin folder """
-        return PLUGINS
+        return plugins.EXISTING_PLUGINS
 
     def list_subtitles(self, filename, langs=None):
         """
@@ -216,8 +216,9 @@ class Periscope(object):
             format(filename, langs))
         subtitles = []
         queue = Queue()
-        for plugin_class in self.plugins:
+        for plugin_name in self.plugins:
             try :
+                plugin_class = getattr(plugins, plugin_name)
                 plugin = plugin_class(self.config, self.cache_path)
                 LOG.info("Searching on {}".format(plugin.__class__.__name__))
                 thread = threading.Thread(
