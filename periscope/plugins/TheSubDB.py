@@ -47,9 +47,9 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
     def __init__(self, config, cache_folder_path):
         super(TheSubDB, self).__init__(SS_LANGUAGES)
         self.base_url = 'http://api.thesubdb.com/?{0}'
-            
+
     def process(self, filepath, langs):
-        ''' main method to call on the plugin, pass the filename and the wished 
+        ''' main method to call on the plugin, pass the filename and the wished
         languages and it will query the subtitles source '''
         # Get the hash
         filehash = self.get_hash(filepath)
@@ -61,11 +61,10 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
         req = urllib2.Request(search_url)
         req.add_header('User-Agent', self.user_agent)
         subs = []
-        try : 
+        try :
             page = urllib2.urlopen(req, timeout=5)
             content = page.readlines()
             plugin_langs = content[0].split(',')
-            print content[0]
             for lang in plugin_langs :
                 if not langs or lang in langs:
                     result = {}
@@ -80,7 +79,7 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
                 return subs
             else:
                 log.exception('Error occured : %s' % e)
-        
+
 
     def get_hash(self, name):
         '''this hash function receives the name of the file and returns the hash code'''
@@ -91,7 +90,7 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
             f.seek(-readsize, os.SEEK_END)
             data += f.read(readsize)
         return hashlib.md5(data).hexdigest()
-            
+
     def createFile(self, subtitle):
         '''pass the URL of the sub and the file it matches, will unzip it
         and return the path to the created file'''
@@ -105,19 +104,19 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
         ''' Downloads the given url to the given filename '''
         req = urllib2.Request(url)
         req.add_header('User-Agent', self.user_agent)
-        
+
         f = urllib2.urlopen(req)
         dump = open(srtfilename, "wb")
         dump.write(f.read())
         dump.close()
         f.close()
         log.debug("Download finished to file %s. Size : %s"%(srtfilename,os.path.getsize(srtfilename)))
-        
+
     def uploadFile(self, filepath, subpath, lang):
         # Get the hash
         filehash = self.get_hash(filepath)
         log.debug('File hash : %s' % filehash)
-        
+
         # Upload the subtitle
         params = {'action' : 'upload', 'hash' : filehash}
         upload_url = self.base_url.format(urllib.urlencode(params))
@@ -128,11 +127,11 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
         fd = StringIO.StringIO()
         fd.name = '%s.srt' % filehash
         fd.write(content)'''
-        
+
         data = urllib.urlencode({'hash' : filehash, 'file' : sub})
         req = urllib2.Request(upload_url, data)
         req.add_header('User-Agent', self.user_agent)
-        try : 
+        try :
             page = urllib2.urlopen(req, data, timeout=5)
             log.debug(page.readlines())
         except urllib2.HTTPError, e :
@@ -142,4 +141,4 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
         finally:
             pass
             #fd.close()
-        
+

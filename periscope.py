@@ -25,7 +25,7 @@ import logging
 from periscope.periscope import Periscope
 from periscope.version import VERSION
 
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 SUPPORTED_FORMATS = (
     'video/x-msvideo',
@@ -33,6 +33,29 @@ SUPPORTED_FORMATS = (
      'video/x-matroska',
       'video/mp4'
 )
+
+
+def download_subtitles(periscope_client, videos, options):
+    """ Download subtitles. """
+    subs = []
+    for arg in videos:
+        if not options.langs:  # Look into the config file
+            LOG.info("No lang given, looking into config file")
+            langs = periscope_client.prefered_languages
+        else:
+            langs = options.langs
+        sub = periscope_client.download_subtitles(arg, langs)
+        if sub:
+            subs.append(sub)
+
+    LOG.info("*"*50)
+    LOG.info("Downloaded {} subtitles".format(len(subs)))
+    for sub in subs:
+        LOG.info(sub['lang'] + " - " + sub['subtitlepath'])
+    LOG.info("*"*50)
+    if len(subs) == 0:
+        exit(1)
+
 
 def main():
     """ Download subtitles. """
@@ -71,14 +94,11 @@ def main():
                       help="set the logging level to debug")
 
     (options, args) = parser.parse_args()
-
-    # process options
+    logging.basicConfig(level=logging.INFO)
     if options.debug:
         logging.basicConfig(level=logging.DEBUG)
     elif options.quiet:
         logging.basicConfig(level=logging.WARN)
-    else:
-        logging.basicConfig(level=logging.INFO)
 
     if not options.cache_folder:
         try:
@@ -88,7 +108,7 @@ def main():
         except:
             home = os.path.expanduser("~")
             if home == "~":
-                log.error(("Could not generate a cache folder at the home "
+                LOG.error(("Could not generate a cache folder at the home "
                            "location using XDG (freedesktop). "
                            "You must specify a --cache-config folder where "
                            "the cache and config config will be located "
@@ -96,7 +116,7 @@ def main():
                 exit()
             options.cache_folder = os.path.join(home, ".config", "periscope")
 
-    periscope_client = Periscope(options.cache_folder)\
+    periscope_client = Periscope(options.cache_folder)
 
     if options.show_active_plugins:
         print "Active plugins: "
@@ -114,35 +134,17 @@ def main():
 
     if options.queries:
         args += options.queries
+
     if not args:
         print "No video file supplied."
         print parser.print_help()
         exit()
 
-    if options.queries:
-        args += options.queries
     videos = []
     for arg in args:
         videos += recursive_search(arg, options)
 
-    subs = []
-    for arg in videos:
-        if not options.langs:  # Look into the config file
-            log.info("No lang given, looking into config file")
-            langs = periscope_client.prefered_languages
-        else:
-            langs = options.langs
-        sub = periscope_client.download_subtitles(arg, langs)
-        if sub:
-            subs.append(sub)
-
-    log.info("*"*50)
-    log.info("Downloaded %s subtitles" % len(subs))
-    for sub in subs:
-        log.info(sub['lang'] + " - " + sub['subtitlepath'])
-    log.info("*"*50)
-    if len(subs) == 0:
-        exit(1)
+    download_subtitles(periscope_client, videos, options)
 
 
 def recursive_search(entry, options):
@@ -153,6 +155,7 @@ def recursive_search(entry, options):
         # (how to handle windows/mac/linux ?)
         for e in os.listdir(entry):
             files += recursive_search(os.path.join(entry, e), options)
+
     elif os.path.isfile(entry):
         # Add mkv mimetype to the list
         mimetypes.add_type("video/x-matroska", ".mkv")
@@ -165,11 +168,11 @@ def recursive_search(entry, options):
                  os.path.exists(basepath + '.sub'))):
                 files.append(os.path.normpath(entry))
             else:
-                log.info(("Skipping file %s as it already has a subtitle. "
+                LOG.info(("Skipping file %s as it already has a subtitle. "
                           "Use the --force option to force the download")
                            % entry)
         else:
-            log.warn(("{} mimetype is '{}' which is not a supported"
+            LOG.warn(("{} mimetype is '{}' which is not a supported"
                       " video format ({})").format(entry,
                                                    mimetype,
                                                    SUPPORTED_FORMATS))
