@@ -35,68 +35,99 @@ SUPPORTED_FORMATS = (
 )
 
 def main():
-    '''Download subtitles'''
+    """ Download subtitles. """
     # parse command line options
-    parser = OptionParser("usage: %prog [options] file1 file2", version = VERSION)
-    parser.add_option("-l", "--language", action="append", dest="langs", help="wanted language (ISO 639-1 two chars) for the subtitles (fr, en, ja, ...). If none is specified will download a subtitle in any language. This option can be used multiple times like %prog -l fr -l en file1 will try to download in french and then in english if no french subtitles are found.")
-    parser.add_option("-f", "--force", action="store_true", dest="force_download", help="force download of a subtitle even there is already one present")
-    parser.add_option("-q", "--query", action="append", dest="queries", help="query to send to the subtitles website")
-    parser.add_option("--cache-folder", action="store", type="string", dest="cache_folder", help="location of the periscope cache/config folder (default is ~/.config/periscope)")
-    parser.add_option("--list-plugins", action="store_true", dest="show_plugins", help="list all plugins supported by periscope")
-    parser.add_option("--list-active-plugins", action="store_true", dest="show_active_plugins", help="list all plugins used to search subtitles (a subset of all the supported plugins)")
-    parser.add_option("--quiet", action="store_true", dest="quiet", help="run in quiet mode (only show warn and error messages)")
-    parser.add_option("--debug", action="store_true", dest="debug", help="set the logging level to debug")
+    parser = OptionParser("usage: %prog [options] file1 file2 ...",
+                          version=VERSION)
+    parser.add_option("-l", "--language", action="append", dest="langs",
+                      help=("wanted language (ISO 639-1 two chars) for the "
+                            "subtitles (fr, en, ja, ...). If none is specified"
+                            " will download a subtitle in any language. This "
+                            "option can be used multiple times like %prog -l"
+                            " fr -l en file1 will try to download in french "
+                            "and then in english if no french subtitles are "
+                            "found."))
+    parser.add_option("-f", "--force", action="store_true",
+                      dest="force_download",
+                      help=("force download of a subtitle even there is "
+                            "already one present"))
+    parser.add_option("-q", "--query", action="append", dest="queries",
+                      help="query to send to the subtitles website")
+    parser.add_option("--cache-folder", action="store", type="string",
+                      dest="cache_folder",
+                      help=("location of the periscope cache/config folder "
+                            " (default is ~/.config/periscope)"))
+    parser.add_option("--list-plugins", action="store_true",
+                      dest="show_plugins",
+                      help="list all plugins supported by periscope")
+    parser.add_option("--list-active-plugins", action="store_true",
+                      dest="show_active_plugins",
+                      help=("list all plugins used to search subtitles "
+                            "(a subset of all the supported plugins)"))
+    parser.add_option("--quiet", action="store_true", dest="quiet",
+                      help=("run in quiet mode (only show warn and error "
+                            "messages)"))
+    parser.add_option("--debug", action="store_true", dest="debug",
+                      help="set the logging level to debug")
+
     (options, args) = parser.parse_args()
 
-    if not args:
-        print parser.print_help()
-        exit()
-
-    # process args
-    if options.debug :
+    # process options
+    if options.debug:
         logging.basicConfig(level=logging.DEBUG)
-    elif options.quiet :
+    elif options.quiet:
         logging.basicConfig(level=logging.WARN)
-    else :
+    else:
         logging.basicConfig(level=logging.INFO)
-
 
     if not options.cache_folder:
         try:
             import xdg.BaseDirectory as bd
-            options.cache_folder = os.path.join(bd.xdg_config_home, "periscope")
+            options.cache_folder = os.path.join(bd.xdg_config_home,
+                                                "periscope")
         except:
             home = os.path.expanduser("~")
             if home == "~":
-                log.error("Could not generate a cache folder at the home location using XDG (freedesktop). You must specify a --cache-config folder where the cache and config will be located (always use the same folder).")
+                log.error(("Could not generate a cache folder at the home "
+                           "location using XDG (freedesktop). "
+                           "You must specify a --cache-config folder where "
+                           "the cache and config config will be located "
+                           "(always use the same folder)."))
                 exit()
             options.cache_folder = os.path.join(home, ".config", "periscope")
 
-
-    periscope_client = Periscope(options.cache_folder)
+    periscope_client = Periscope(options.cache_folder)\
 
     if options.show_active_plugins:
         print "Active plugins: "
         plugins = periscope_client.list_active_plugins()
         for plugin in plugins:
-            print "%s" %(plugin)
+            print plugin
         exit()
 
     if options.show_plugins:
         print "All plugins: "
         plugins = list_existing_plugins()
         for plugin in plugins:
-            print "%s" %(plugin)
+            print plugin
         exit()
 
-    if options.queries: args += options.queries
+    if options.queries:
+        args += options.queries
+    if not args:
+        print "No video file supplied."
+        print parser.print_help()
+        exit()
+
+    if options.queries:
+        args += options.queries
     videos = []
     for arg in args:
         videos += recursive_search(arg, options)
 
     subs = []
     for arg in videos:
-        if not options.langs: #Look into the config
+        if not options.langs:  # Look into the config file
             log.info("No lang given, looking into config file")
             langs = periscope_client.prefered_languages
         else:
@@ -106,19 +137,20 @@ def main():
             subs.append(sub)
 
     log.info("*"*50)
-    log.info("Downloaded %s subtitles" %len(subs))
-    for s in subs:
-        log.info(s['lang'] + " - " + s['subtitlepath'])
+    log.info("Downloaded %s subtitles" % len(subs))
+    for sub in subs:
+        log.info(sub['lang'] + " - " + sub['subtitlepath'])
     log.info("*"*50)
     if len(subs) == 0:
         exit(1)
 
 
 def recursive_search(entry, options):
-    '''searches files in the dir'''
+    """ Searche files in the dir. """
     files = []
     if os.path.isdir(entry):
-        #TODO if hidden folder, don't keep going (how to handle windows/mac/linux ?)
+        # TODO if hidden folder, don't keep going
+        # (how to handle windows/mac/linux ?)
         for e in os.listdir(entry):
             files += recursive_search(os.path.join(entry, e), options)
     elif os.path.isfile(entry):
@@ -128,12 +160,19 @@ def recursive_search(entry, options):
         if mimetype in SUPPORTED_FORMATS:
             # Add it to the list only if there is not already one (or forced)
             basepath = os.path.splitext(entry)[0]
-            if options.force_download or not (os.path.exists(basepath+'.srt') or os.path.exists(basepath + '.sub')):
+            if (options.force_download or not
+                (os.path.exists(basepath+'.srt') or
+                 os.path.exists(basepath + '.sub'))):
                 files.append(os.path.normpath(entry))
             else:
-                log.info("Skipping file %s as it already has a subtitle. Use the --force option to force the download" % entry)
-        else :
-            log.info("%s mimetype is '%s' which is not a supported video format (%s)" %(entry, mimetype, SUPPORTED_FORMATS))
+                log.info(("Skipping file %s as it already has a subtitle. "
+                          "Use the --force option to force the download")
+                           % entry)
+        else:
+            log.warn(("{} mimetype is '{}' which is not a supported"
+                      " video format ({})").format(entry,
+                                                   mimetype,
+                                                   SUPPORTED_FORMATS))
     return files
 
 if __name__ == "__main__":
