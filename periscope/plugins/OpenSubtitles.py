@@ -19,17 +19,17 @@
 
 import os
 import xmlrpclib
-import gzip
 import logging
 import socket  # For timeout purposes
-from periscope.helper import file_basename
+import gzip
+from periscope.helper import download_file
 # import struct
 # import commands
 # import traceback
 
 from SubtitleDatabase import SubtitleDB
 
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 # TODO : get this hash from OpenSubtitle itself and cache it.
 OS_LANGS = {"en": "eng",
@@ -100,7 +100,7 @@ class OpenSubtitles(SubtitleDB):
         """ Overwrite the default constuctor. """
         super(OpenSubtitles, self).__init__(OS_LANGS)
         response = self.server.LogIn("", "", "eng", "periscope")
-        log.debug('LogIn : %s' % response)
+        LOG.debug('LogIn : %s' % response)
         socket.setdefaulttimeout(10)
         self.token = response['token']
 
@@ -108,43 +108,41 @@ class OpenSubtitles(SubtitleDB):
         """ Logout from the service on destuction. """
         if self.token is not None:
             response = self.server.LogOut(self.token)
-            log.debug('LogOut : %s' % response)
+            LOG.debug('LogOut : %s' % response)
         socket.setdefaulttimeout(None)
 
     def process(self, file_path, langs):
         """ Get a list of subtitles for the file in the wanted languages. """
-        log.info("Processing {} for languages {}".format(file_path, langs))
-        langs_id = ",".join([self.getLanguage(lang) for lang in ['en']])
+        LOG.info("Processing {} for languages {}".format(file_path, langs))
+        langs_id = ",".join([self.getLanguage(lang) for lang in langs])
         search_params = {'moviehash': self.hashFile(file_path),
                          'moviebytesize': os.path.getsize(file_path),
                          # 'file_basename': file_basename(file_path),
                          'sublanguageid': langs_id}
         try:
-            log.info("Querying with arguments : {}".format(search_params))
+            LOG.debug("Querying with arguments : {}".format(search_params))
             response = self.server.SearchSubtitles(self.token, [search_params])
-            log.info("status: {}, {} subtitles".format(response['status'],
-                                                       len(response['data'])))
-            # log.info(response)
+            LOG.debug("status: {}, {} subtitles".
+                      format(response['status'], len(response['data'])))
         except Exception, e:
-            log.error("Could not query the server OpenSubtitles")
-            log.debug(e)
+            LOG.error("Could not query the server OpenSubtitles")
+            LOG.debug(e)
             return []
         return self.post_process_results(response['data'])
 
-    # def createFile(self, subtitle):
-    #     '''pass the URL of the sub and the file it matches, will unzip it
-    #     and return the path to the created file'''
-    #     suburl = subtitle["link"]
-    #     videofilename = subtitle["filename"]
-    #     srtbasefilename = videofilename.rsplit(".", 1)[0]
-    #     self.downloadFile(suburl, srtbasefilename + ".srt.gz")
-    #     f = gzip.open(srtbasefilename+".srt.gz")
-    #     dump = open(srtbasefilename+".srt", "wb")
-    #     dump.write(f.read())
-    #     dump.close()
-    #     f.close()
-    #     os.remove(srtbasefilename+".srt.gz")
-    #     return srtbasefilename+".srt"
+    def createFile(self, subtitle):
+        """ Download the subtitle and unzip to to the .srt file. """
+        suburl = subtitle["link"]
+        videofilename = subtitle["filename"]
+        srtbasefilename = videofilename.rsplit(".", 1)[0]
+        download_file(suburl, srtbasefilename + ".srt.gz", LOG)
+        f = gzip.open(srtbasefilename+".srt.gz")
+        dump = open(srtbasefilename+".srt", "wb")
+        dump.write(f.read())
+        dump.close()
+        f.close()
+        os.remove(srtbasefilename+".srt.gz")
+        return srtbasefilename+".srt"
 
     def post_process_results(self, data):
         """ Postprocessing. See details in SubtitleDB class. """

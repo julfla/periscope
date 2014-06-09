@@ -108,6 +108,7 @@ class Periscope(object):
              "plugins" : "",
              "lang-in-name": "no",
         })
+        LOG.info("Log level : %s" % LOG.getEffectiveLevel())
         self.config_file = os.path.join(cache_folder, "config")
         self.cache_path = cache_folder
 
@@ -150,7 +151,7 @@ class Periscope(object):
         config_plugins = self.config.get("DEFAULT", "plugins")
         if not config_plugins or config_plugins.strip() == "":
             return self.list_existing_plugins()
-        else :
+        else:
             LOG.info("plugins read from config : " + config_plugins)
             return [x.strip() for x in config_plugins.split(",")]
 
@@ -237,50 +238,38 @@ class Periscope(object):
                 else:
                     for sub in subs:
                         if sub["lang"] in langs:
-                            subtitles += [sub] # Add an array with just that sub
-
+                            subtitles.append(sub)
+        LOG.debug("%s subtitles has been returned." % len(subtitles))
         return subtitles
 
-    def download_subtitles(self, filename, langs=None, interactive=False):
-        """
-        Take a filename and a language and creates ONE subtitle
-        through plugins. If interactive == True asks before downloading.
+    def download_subtitle(self, filename,
+                          langs=None, interactive=False):
+        """ Dowload only the best subtitle for the file.
+
+        If interactive is set tu true, the user will be asked to choose.
         """
         subtitles = self.list_subtitles(filename, langs)
-        if subtitles:
-            LOG.debug("All subtitles: ")
-            LOG.debug(subtitles)
-            return self.attempt_download_subtitle(subtitles, langs, interactive)
-        else:
-            return None
+        return self.attempt_download_subtitle(subtitles,
+                                              langs, interactive)
 
     def attempt_download_subtitle(self, subtitles, langs, interactive=False):
-        """ Try to download the best available subtitle. """
+        """ Attempt to download the best available subtitle in the list. """
         subtitle = select_best_subtitles(subtitles, langs, interactive)
         if not subtitle:
             LOG.error("No subtitles could be chosen.")
             return None
 
-        else:
-            LOG.info("Trying to download subtitle: {}".format(subtitle['link']))
-
-            #Download the subtitle
-            try:
-                subpath = subtitle["plugin"].createFile(subtitle)
-                if subpath:
-                    subtitle["subtitlepath"] = subpath
-                    return subtitle
-                else:
-                    raise Exception("Not downloaded")
-
-            except Exception:
-                # Could not download that subtitle, remove it
-                LOG.warn("Subtitle {} could not be downloaded, \
-                    trying the next on the list".format(subtitle['link']))
-                etype = sys.exc_info()[0]
-                evalue = sys.exc_info()[1]
-                etb = traceback.extract_tb(sys.exc_info()[2])
-                LOG.error("Type[{}], Message [{}], Traceback[{}]" .
-                    format(etype, evalue, etb))
-                subtitles.remove(subtitle)
-                return self.attempt_download_subtitle(subtitles, langs)
+        LOG.info("Trying to download subtitle: {}".format(subtitle['link']))
+        try:
+            subpath = subtitle["plugin"].createFile(subtitle)
+            if subpath:
+                subtitle["subtitlepath"] = subpath
+                return subtitle
+            else:
+                raise Exception("Not downloaded")
+        except Exception, e:
+            LOG.exception(e)
+            LOG.warn(("Subtitle {} could not be downloaded, "
+                      "trying the next on the list").format(subtitle['link']))
+            subtitles.remove(subtitle)
+            return self.attempt_download_subtitle(subtitles, langs)

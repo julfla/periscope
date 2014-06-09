@@ -21,6 +21,7 @@ import os
 import mimetypes
 from optparse import OptionParser
 import logging
+logging.basicConfig(level=logging.DEBUG)
 
 from periscope.periscope import Periscope
 from periscope.version import VERSION
@@ -33,8 +34,8 @@ SUPPORTED_FORMATS = ('video/x-msvideo',
                      'video/mp4')
 
 
-def download_subtitles(periscope_client, videos, options):
-    """ Download subtitles. """
+def download_subtitle(periscope_client, videos, options):
+    """ Dowload only the best subtitle for the file. """
     subs = []
     for arg in videos:
         if not options.langs:  # Look into the config file
@@ -42,7 +43,7 @@ def download_subtitles(periscope_client, videos, options):
             langs = periscope_client.prefered_languages
         else:
             langs = options.langs
-        sub = periscope_client.download_subtitles(arg, langs)
+        sub = periscope_client.download_subtitle(arg, langs)
         if sub:
             subs.append(sub)
 
@@ -54,7 +55,6 @@ def download_subtitles(periscope_client, videos, options):
         for sub in subs:
             LOG.info(sub['lang'] + " - " + sub['subtitlepath'])
             LOG.info("*"*50)
-
 
 
 def main():
@@ -144,7 +144,7 @@ def main():
     for arg in args:
         videos += recursive_search(arg, options)
 
-    download_subtitles(periscope_client, videos, options)
+    download_subtitle(periscope_client, videos, options)
 
 
 def recursive_search(entry, options):
@@ -170,7 +170,7 @@ def recursive_search(entry, options):
             else:
                 LOG.info(("Skipping file %s as it already has a subtitle. "
                           "Use the --force option to force the download")
-                           % entry)
+                         % entry)
         else:
             LOG.warn(("{} mimetype is '{}' which is not a supported"
                       " video format ({})").format(entry,
