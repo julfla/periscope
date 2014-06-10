@@ -4,8 +4,8 @@
 #   Copyright (c) 2008-2011 Patrick Dessalle <patrick@dessalle.be>
 #
 #    periscope is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
+#    it under the terms of the GNU Lesser General Public License as published
+#     by the Free Software Foundation; either version 2 of the License, or
 #    (at your option) any later version.
 #
 #    periscope is distributed in the hope that it will be useful,
@@ -93,12 +93,11 @@ class OpenSubtitles(SubtitleDB):
     url = "http://www.opensubtitles.org/"
     site_name = "OpenSubtitles"
     server_url = 'http://api.opensubtitles.org/xml-rpc'
-    server = xmlrpclib.Server('http://api.opensubtitles.org/xml-rpc')
-    token = None  # token used in the api
 
-    def __init__(self, arg, arg2):
+    def __init__(self, config, cache_path):
         """ Overwrite the default constuctor. """
         super(OpenSubtitles, self).__init__(OS_LANGS)
+        self.server = xmlrpclib.Server(self.server_url)
         response = self.server.LogIn("", "", "eng", "periscope")
         LOG.debug('LogIn : {}'.format(response))
         socket.setdefaulttimeout(10)

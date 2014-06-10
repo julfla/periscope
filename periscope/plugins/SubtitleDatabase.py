@@ -22,17 +22,16 @@ import logging
 import zipfile
 import struct
 import re
-# from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 
 LOG = logging.getLogger(__name__)
 
 
-# TODO : make the class abstract
 class SubtitleDB(object):
 
     """ Abstract class that represent a SubtitleDB, usually a website. """
 
-    # __metaclass__ = ABCMeta
+    __metaclass__ = ABCMeta
 
     site_name = "Overwrite to name the module"
 
@@ -121,7 +120,7 @@ class SubtitleDB(object):
                       " of {}: {}. Send a bug report to have it added.".
                       format(self.__class__.__name__, lang)))
 
-    # @abstractmethod
+    @abstractmethod
     def process(self, filepath, langs):
         """ Dowload the subtiles for a file in the wanted languages. """
         pass
@@ -136,7 +135,7 @@ class SubtitleDB(object):
         """ Return a list of available subtitles. """
         pass
 
-    # @abstractmethod
+    @abstractmethod
     def post_process_results(self, subtitles):
         """ Postprocess the raw result to fit to a common pattern. """
         pass

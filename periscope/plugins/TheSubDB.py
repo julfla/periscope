@@ -26,20 +26,22 @@ import traceback
 import hashlib
 import StringIO
 
-import SubtitleDatabase
+from periscope.plugins.SubtitleDatabase import SubtitleDB
 
 log = logging.getLogger(__name__)
 
 SS_LANGUAGES = {"en": "en",
                 "nl": "nl",
                 "pt": "pt",
-                "pt-br":"pt",
+                "pt-br": "pt",
                 "no": "Norwegian",
-                "fr" : "French",
-                "es" : "Spanish",
-                "is" : "Icelandic"}
+                "fr": "French",
+                "es": "Spanish",
+                "is": "Icelandic"}
 
-class TheSubDB(SubtitleDatabase.SubtitleDB):
+
+class TheSubDB(SubtitleDB):
+
     url = "http://thesubdb.com/"
     site_name = "SubDB"
     user_agent = "SubDB/1.0 (periscope/0.1; http://code.google.com/p/periscope)"
@@ -61,25 +63,27 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
         req = urllib2.Request(search_url)
         req.add_header('User-Agent', self.user_agent)
         subs = []
-        try :
+        try:
             page = urllib2.urlopen(req, timeout=5)
             content = page.readlines()
             plugin_langs = content[0].split(',')
-            for lang in plugin_langs :
+            for lang in plugin_langs:
                 if not langs or lang in langs:
                     result = {}
                     result['release'] = filepath
                     result['lang'] = lang
-                    result['link'] = self.base_url.format(urllib.urlencode({'action':'download', 'hash':filehash , 'language' :lang}))
+                    result['link'] = self.base_url.format(urllib.urlencode({
+                        'action': 'download',
+                        'hash': filehash,
+                        'language': lang}))
                     result['page'] = result['link']
                     subs.append(result)
             return subs
-        except urllib2.HTTPError, e :
-            if e.code == 404 : # No result found
+        except urllib2.HTTPError, err:
+            if err.code == 404:  # No result found
                 return subs
             else:
                 log.exception('Error occured : %s' % e)
-
 
     def get_hash(self, name):
         '''this hash function receives the name of the file and returns the hash code'''
@@ -91,7 +95,7 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
             data += f.read(readsize)
         return hashlib.md5(data).hexdigest()
 
-    def createFile(self, subtitle):
+    def create_file(self, subtitle):
         '''pass the URL of the sub and the file it matches, will unzip it
         and return the path to the created file'''
         suburl = subtitle["link"]
@@ -142,3 +146,6 @@ class TheSubDB(SubtitleDatabase.SubtitleDB):
             pass
             #fd.close()
 
+    def post_process_results(self, subtitles):
+        """ Postprocess the raw result to fit to a common pattern. """
+        pass
