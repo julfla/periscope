@@ -1,22 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#   This file is part of periscope.
-#   Copyright (c) 2008-2011 Patrick Dessalle <patrick@dessalle.be>
-#
-#    periscope is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License
-#    as published by the Free Software Foundation;
-#    either version 2 of the License, or (at your option) any later version.
-#
-#    periscope is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with periscope; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+""" This module is the access point to the plugins to download subtitles."""
+
 from __future__ import absolute_import
 
 import os
@@ -97,81 +83,82 @@ class Periscope(object):
         else:
             self.config.read(self.config_file)
 
-        self.plugins = self.get_prefered_plugins()
+        self.plugins = self.prefered_plugins
         self._prefered_languages = None
 
-    def get_prefered_languages(self):
-        """ Get the prefered language from the config file. """
-        config_lang = self.config.get("DEFAULT", "lang")
-        LOG.info("lang read from config: " + config_lang)
-        if config_lang == "":
+    def _set_config_value(self, config, value, is_list=False):
+        """ Update config and save to config file. """
+        if is_list:
+            value = ",".join(value)
+        self.config.set("DEFAULT", config, value)
+        with open(self.config_file, "w") as config_file:
+            LOG.info("Set config {} : {}".format(config, value))
+            self.config.write(config_file)
+            LOG.info("Config saved into {}".format(self.config_file))
+
+    def _get_config_value(self, config, is_list=False):
+        """ Get value from config. """
+        value = self.config.get("DEFAULT", config)
+        if is_list:
+            if value:
+                value = [x.strip() for x in value.split(",")]
+            else:
+                value = []
+        LOG.info("Read config {} : {}".format(config, value))
+        return value
+
+    @property
+    def prefered_languages(self):
+        """ Get prefered_languages value from config. """
+        value = self._get_config_value("lang", True)
+        if not value:
             try:
-                return [getdefaultlocale()[0][:2]]
+                value = [getdefaultlocale()[0][:2]]
             except IndexError:
-                return DEFAULT_LANG
-        else:
-            return [x.strip() for x in config_lang.split(",")]
+                value = DEFAULT_LANG
+        return value
+    @prefered_languages.setter
+    def prefered_languages(self, value):
+        """ Set prefered_languages value in config. """
+        self._set_config_value("lang", value, True)
 
-    def set_prefered_languages(self, langs):
-        """ Update the config file to set the prefered language. """
-        self.config.set("DEFAULT", "lang", ",".join(langs))
-        config_file = open(self.config_file, "w")
-        self.config.write(config_file)
-        config_file.close()
+    @property
+    def prefered_plugins(self):
+        """ Get prefered_plugins value from config. """
+        value = self.config.get("DEFAULT", "plugins")
+        if not value:
+            value = self.list_existing_plugins()
+        return value
+    @prefered_plugins.setter
+    def prefered_plugins(self, value):
+        """ Set prefered_plugins value in config. """
+        self._set_config_value("plugins", value, True)
 
-    def get_prefered_plugins(self):
-        """ Get the prefered plugins from the config file. """
-        config_plugins = self.config.get("DEFAULT", "plugins")
-        if not config_plugins or config_plugins.strip() == "":
-            return self.list_existing_plugins()
-        else:
-            LOG.info("plugins read from config : " + config_plugins)
-            return [x.strip() for x in config_plugins.split(",")]
-
-    def set_prefered_plugins(self, new_plugins):
-        """ Update the config file to set the prefered plugins. """
-        self.config.set("DEFAULT", "plugins", ",".join(new_plugins))
-        config_file = open(self.config_file, "w")
-        self.config.write(config_file)
-        config_file.close()
-
-    def get_prefered_naming(self):
-        """ Get the prefered naming convention from the config file. """
+    @property
+    def prefered_naming(self):
+        """ Get prefered_naming value from config. """
         try:
-            lang_in_name = self.config.getboolean("DEFAULT", "lang-in-name")
-            LOG.info("lang-in-name read from config: " + str(lang_in_name))
+            return bool(self._get_config_value("lang-in-name"))
         except ValueError:
-            lang_in_name = False
-        return lang_in_name
-
-    def set_prefered_naming(self, lang_in_name):
-        """ Update the config file to set the prefered naming convention. """
-        self.config.set(
-            'DEFAULT',
-            'lang-in-name',
-            'yes' if lang_in_name else 'no')
-        config_file = open(self.config_file, "w")
-        self.config.write(config_file)
-        config_file.close()
-
-    # Getter/setter for the property prefered_languages
-    prefered_languages = property(get_prefered_languages,
-                                  set_prefered_languages)
-    prefered_plugins = property(get_prefered_plugins, set_prefered_plugins)
-    prefered_naming = property(get_prefered_naming, set_prefered_naming)
+            return False
+    @prefered_naming.setter
+    def prefered_naming(self, value):
+        """ Set prefered_naming value in config. """
+        value = "yes" if value else "no"
+        self._set_config_value("lang_in_name", value)
 
     def deactivate_plugin(self, plugin):
         """ Remove a plugin from the list. """
         self.plugins -= plugin
-        self.set_prefered_plugins(self.plugins)
+        self.prefered_plugins = self.plugins
 
     def activate_plugin(self, plugin):
         """ Activate a plugin. """
         if plugin not in self.list_existing_plugins():
             raise ImportError("No plugin with the name {} exists".
-                format(plugin))
+                              format(plugin))
         self.plugins += plugin
-        self.set_prefered_plugins(self.plugins)
+        self.prefered_plugins = self.plugins
 
     def list_active_plugins(self):
         """ Return all active plugins. """
