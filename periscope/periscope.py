@@ -37,70 +37,45 @@ SUPPORTED_FORMATS = (
     'video/x-matroska',
     'video/mp4'
 )
+DEFAULT_LANG = ["en"]
 
 
-def order_subtitles(subs):
-    """ reorder the subtitles according to the languages then the website """
-    from collections import defaultdict
-    subtitles = defaultdict(list)
-    for sub in subs:
-        subtitles[sub["lang"]].append(sub)
-    return subtitles
+def select_subtitle_auto(subtitles, langs=None):
+    """ Return the first subtile in the wanted language. """
+    if not langs:
+        langs = DEFAULT_LANG
+    for lang in langs:
+        for subtitle in subtitles:
+            if subtitle['lang'] == lang:
+                return subtitle
+    return None
 
 
-def select_best_subtitles(subtitles, langs=None, interactive=False):
-    """
-    Search subtitles from plugins and returns the first subtitle
-    from candidates or the one selected by the user if interactive = True
-    """
+def select_subtitle_interactive(subtitles):
+    """ Ask the user to select a subtitle and return it. """
     if not subtitles:
         return None
-    subtitles = order_subtitles(subtitles)
-
-    if not langs:
-        langs = ["en"]
-
-    if not interactive:
-        for lang in langs:
-            if lang in subtitles and len(subtitles[lang]):
-                return subtitles[lang][0]
-
-    else:
-        interactive_subtitles = []
-        for lang in langs:
-            if lang in subtitles and len(subtitles[lang]):
-                for sub in subtitles[lang]:
-                    interactive_subtitles.append(sub)
-
-        return select_subtitles_interactive(interactive_subtitles)
-
-
-def select_subtitles_interactive(interactive_subtitles):
-    """
-    Returns the subtitle selected by the user
-    """
-    for i, sub in enumerate(interactive_subtitles):
+    for i, sub in enumerate(subtitles):
         print "[%d]: %s" % (i, sub["release"])
 
-    sub = None
-    while not sub:
+    while True:
         try:
-            sub = interactive_subtitles[int(
-                raw_input("Please select a subtitle: "))]
-            if sub:
-                return sub
-        except IndexError:
-            print "Invalid index"
-        except ValueError:
-            print "Invalid value"
-
-    return None  # Could not find subtitles
+            selected_idx = int(raw_input(
+                "Please select a subtitle: "))
+            return subtitles[selected_idx]
+        except (IndexError, ValueError):
+            print ("Please enter a valid subtitle number. "
+                   "Press ctrl+c to exit.")
+        except KeyboardInterrupt:
+            return None
 
 
 class Periscope(object):
-    """ Main Periscope class """
+
+    """ Main Periscope class. """
 
     def __init__(self, cache_folder=None):
+        """ Initalization method. """
         self.config = ConfigParser.SafeConfigParser({
             "lang": "",
             "plugins": "",
@@ -132,8 +107,8 @@ class Periscope(object):
         if config_lang == "":
             try:
                 return [getdefaultlocale()[0][:2]]
-            except Exception:
-                return ["en"]
+            except IndexError:
+                return DEFAULT_LANG
         else:
             return [x.strip() for x in config_lang.split(",")]
 
@@ -181,7 +156,7 @@ class Periscope(object):
 
     # Getter/setter for the property prefered_languages
     prefered_languages = property(get_prefered_languages,
-        set_prefered_languages)
+                                  set_prefered_languages)
     prefered_plugins = property(get_prefered_plugins, set_prefered_plugins)
     prefered_naming = property(get_prefered_naming, set_prefered_naming)
 
@@ -204,16 +179,13 @@ class Periscope(object):
 
     @classmethod
     def list_existing_plugins(cls):
-        """ List all possible plugins from the plugin folder """
+        """ List all possible plugins from the plugin folder. """
         return plugins.EXISTING_PLUGINS
 
     def list_subtitles(self, filename, langs=None):
-        """
-        Search subtitles within the active plugins and returns
-        all found matching subtitles ordered by language then by plugin.
-        """
+        """ Return all matching subtitles using the active plugins. """
         LOG.info("Searching subtitles for {} with langs {}".
-            format(filename, langs))
+                 format(filename, langs))
         subtitles = []
         queue = Queue()
         for plugin_name in self.plugins:
@@ -241,34 +213,23 @@ class Periscope(object):
         LOG.debug("{} subtitles has been returned." .format(len(subtitles)))
         return subtitles
 
-    def download_subtitle(self, filename,
-                          langs=None, interactive=False):
-        """ Dowload only the best subtitle for the file.
-
-        If interactive is set to true, the user will be asked to choose.
-        """
+    def download_subtitle(self, filename, langs=None):
+        """ Dowload only the best subtitle for the file. """
         subtitles = self.list_subtitles(filename, langs)
-        return self.attempt_download_subtitle(subtitles,
-                                              langs, interactive)
+        return self.attempt_download_subtitle(subtitles, langs)
 
-    def attempt_download_subtitle(self, subtitles, langs, interactive=False):
+    def attempt_download_subtitle(self, subtitles, langs):
         """ Attempt to download the best available subtitle in the list. """
-        subtitle = select_best_subtitles(subtitles, langs, interactive)
+        subtitle = select_subtitle_auto(subtitles, langs)
         if not subtitle:
             LOG.error("No subtitles could be chosen.")
             return None
-
         LOG.info("Trying to download subtitle: {}".format(subtitle['link']))
-        try:
-            subpath = subtitle["plugin"].create_file(subtitle)
-            if subpath:
-                subtitle["subtitlepath"] = subpath
-                return subtitle
-            else:
-                raise Exception("Not downloaded")
-        except Exception, err:
-            LOG.exception(err)
-            LOG.warn(("Subtitle {} could not be downloaded, "
-                      "trying the next on the list").format(subtitle['link']))
-            subtitles.remove(subtitle)
-            return self.attempt_download_subtitle(subtitles, langs)
+        subpath = subtitle["plugin"].create_file(subtitle)
+        if subpath:
+            subtitle["subtitlepath"] = subpath
+            return subtitle
+        LOG.warn(("Subtitle {} could not be downloaded, "
+                  "trying the next on the list.").format(subtitle['link']))
+        subtitles.remove(subtitle)
+        return self.attempt_download_subtitle(subtitles, langs)
