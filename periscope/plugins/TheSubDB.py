@@ -4,8 +4,8 @@
 #   Copyright (c) 2008-2011 Patrick Dessalle <patrick@dessalle.be>
 #
 #    periscope is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
+#    it under the terms of the GNU Lesser General Public License as published
+#    by the Free Software Foundation; either version 2 of the License, or
 #    (at your option) any later version.
 #
 #    periscope is distributed in the hope that it will be useful,
@@ -20,15 +20,12 @@
 import os
 import urllib2
 import urllib
-import xml.dom.minidom
 import logging
-import traceback
 import hashlib
-import StringIO
 
 from periscope.plugins.SubtitleDatabase import SubtitleDB
 
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 SS_LANGUAGES = {"en": "en",
                 "nl": "nl",
@@ -55,11 +52,11 @@ class TheSubDB(SubtitleDB):
         languages and it will query the subtitles source '''
         # Get the hash
         filehash = self.get_hash(filepath)
-        log.debug('File hash : %s' % filehash)
+        LOG.debug('File hash : {}'.format(filehash))
         # Make the search
-        params = {'action' : 'search', 'hash' : filehash }
+        params = {'action': 'search', 'hash': filehash}
         search_url = self.base_url.format(urllib.urlencode(params))
-        log.debug('Query URL : %s' % search_url)
+        LOG.debug('Query URL : {}'.format(search_url))
         req = urllib2.Request(search_url)
         req.add_header('User-Agent', self.user_agent)
         subs = []
@@ -83,16 +80,16 @@ class TheSubDB(SubtitleDB):
             if err.code == 404:  # No result found
                 return subs
             else:
-                log.exception('Error occured : %s' % e)
+                LOG.exception('Error occured : {}'.format(err))
 
     def get_hash(self, name):
-        '''this hash function receives the name of the file and returns the hash code'''
+        '''this hash function receives the name of the file and
+        returns the hash code'''
         readsize = 64 * 1024
-        with open(name, 'rb') as f:
-            size = os.path.getsize(name)
-            data = f.read(readsize)
-            f.seek(-readsize, os.SEEK_END)
-            data += f.read(readsize)
+        with open(name, 'rb') as input_file:
+            data = input_file.read(readsize)
+            input_file.seek(-readsize, os.SEEK_END)
+            data += input_file.read(readsize)
         return hashlib.md5(data).hexdigest()
 
     def create_file(self, subtitle):
@@ -104,27 +101,28 @@ class TheSubDB(SubtitleDB):
         self.downloadFile(suburl, srtfilename)
         return srtfilename
 
-    def downloadFile(self, url, srtfilename):
+    def download_file(self, url, srtfilename):
         ''' Downloads the given url to the given filename '''
         req = urllib2.Request(url)
         req.add_header('User-Agent', self.user_agent)
 
-        f = urllib2.urlopen(req)
+        down_file = urllib2.urlopen(req)
         dump = open(srtfilename, "wb")
-        dump.write(f.read())
+        dump.write(down_file.read())
         dump.close()
-        f.close()
-        log.debug("Download finished to file %s. Size : %s"%(srtfilename,os.path.getsize(srtfilename)))
+        down_file.close()
+        LOG.debug("Download finished to file {}. Size : {}".
+            format(srtfilename, os.path.getsize(srtfilename)))
 
-    def uploadFile(self, filepath, subpath, lang):
+    def upload_file(self, filepath, subpath):
         # Get the hash
         filehash = self.get_hash(filepath)
-        log.debug('File hash : %s' % filehash)
+        LOG.debug('File hash : {}'.format(filehash))
 
         # Upload the subtitle
-        params = {'action' : 'upload', 'hash' : filehash}
+        params = {'action': 'upload', 'hash': filehash}
         upload_url = self.base_url.format(urllib.urlencode(params))
-        log.debug('Query URL : %s' % upload_url)
+        LOG.debug('Query URL : {}'.format(upload_url))
         sub = open(subpath, "r")
         '''content = sub.read()
         sub.close()
@@ -132,16 +130,14 @@ class TheSubDB(SubtitleDB):
         fd.name = '%s.srt' % filehash
         fd.write(content)'''
 
-        data = urllib.urlencode({'hash' : filehash, 'file' : sub})
+        data = urllib.urlencode({'hash': filehash, 'file': sub})
         req = urllib2.Request(upload_url, data)
         req.add_header('User-Agent', self.user_agent)
-        try :
+        try:
             page = urllib2.urlopen(req, data, timeout=5)
-            log.debug(page.readlines())
-        except urllib2.HTTPError, e :
-            log.exception('Error occured while uploading : %s' % e)
-            #log.info(fd.name)
-            #log.info(fd.len)
+            LOG.debug(page.readlines())
+        except urllib2.HTTPError, err:
+            LOG.exception('Error occured while uploading : {}'.format(err))
         finally:
             pass
             #fd.close()
