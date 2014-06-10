@@ -24,7 +24,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 from periscope.periscope import Periscope
-from periscope.version import VERSION
+from periscope import VERSION
 
 LOG = logging.getLogger(__name__)
 
