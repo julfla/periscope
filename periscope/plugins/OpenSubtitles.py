@@ -27,7 +27,7 @@ from periscope.helper import download_file
 # import commands
 # import traceback
 
-from SubtitleDatabase import SubtitleDB
+from periscope.plugins.SubtitleDatabase import SubtitleDB
 
 LOG = logging.getLogger(__name__)
 
@@ -100,7 +100,7 @@ class OpenSubtitles(SubtitleDB):
         """ Overwrite the default constuctor. """
         super(OpenSubtitles, self).__init__(OS_LANGS)
         response = self.server.LogIn("", "", "eng", "periscope")
-        LOG.debug('LogIn : %s' % response)
+        LOG.debug('LogIn : {}'.format(response))
         socket.setdefaulttimeout(10)
         self.token = response['token']
 
@@ -108,14 +108,14 @@ class OpenSubtitles(SubtitleDB):
         """ Logout from the service on destuction. """
         if self.token is not None:
             response = self.server.LogOut(self.token)
-            LOG.debug('LogOut : %s' % response)
+            LOG.debug('LogOut : {}'.format(response))
         socket.setdefaulttimeout(None)
 
     def process(self, file_path, langs):
         """ Get a list of subtitles for the file in the wanted languages. """
         LOG.info("Processing {} for languages {}".format(file_path, langs))
-        langs_id = ",".join([self.getLanguage(lang) for lang in langs])
-        search_params = {'moviehash': self.hashFile(file_path),
+        langs_id = ",".join([self.get_language(lang) for lang in langs])
+        search_params = {'moviehash': self.hash_file(file_path),
                          'moviebytesize': os.path.getsize(file_path),
                          # 'file_basename': file_basename(file_path),
                          'sublanguageid': langs_id}
@@ -124,25 +124,25 @@ class OpenSubtitles(SubtitleDB):
             response = self.server.SearchSubtitles(self.token, [search_params])
             LOG.debug("status: {}, {} subtitles".
                       format(response['status'], len(response['data'])))
-        except Exception, e:
+        except Exception, err:
             LOG.error("Could not query the server OpenSubtitles")
-            LOG.debug(e)
+            LOG.debug(err)
             return []
         return self.post_process_results(response['data'])
 
-    def createFile(self, subtitle):
+    def create_file(self, subtitle):
         """ Download the subtitle and unzip to to the .srt file. """
         suburl = subtitle["link"]
         videofilename = subtitle["filename"]
         srtbasefilename = videofilename.rsplit(".", 1)[0]
         download_file(suburl, srtbasefilename + ".srt.gz", LOG)
-        f = gzip.open(srtbasefilename+".srt.gz")
-        dump = open(srtbasefilename+".srt", "wb")
-        dump.write(f.read())
+        srt_file = gzip.open(srtbasefilename + ".srt.gz")
+        dump = open(srtbasefilename + ".srt", "wb")
+        dump.write(srt_file.read())
         dump.close()
-        f.close()
-        os.remove(srtbasefilename+".srt.gz")
-        return srtbasefilename+".srt"
+        srt_file.close()
+        os.remove(srtbasefilename + ".srt.gz")
+        return srtbasefilename + ".srt"
 
     def post_process_results(self, data):
         """ Postprocessing. See details in SubtitleDB class. """
@@ -150,7 +150,7 @@ class OpenSubtitles(SubtitleDB):
             sub["release"] = sub.pop('SubFileName')
             sub["link"] = sub.pop('SubDownloadLink')
             sub["page"] = sub["link"]
-            sub["lang"] = self.getLG(sub.pop('SubLanguageID'))
+            sub["lang"] = self.get_lang(sub.pop('SubLanguageID'))
         return data
 
     # def sort_by_moviereleasename(self, x, y):

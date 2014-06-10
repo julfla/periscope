@@ -47,14 +47,14 @@ def download_subtitle(periscope_client, videos, options):
         if sub:
             subs.append(sub)
 
-    if len(subs) == 0:
+    if len(subs) == 0 and len(videos) > 0:
         exit(1)
     else:
-        LOG.info("*"*50)
+        LOG.info("*" * 50)
         LOG.info("Downloaded {} subtitles".format(len(subs)))
         for sub in subs:
             LOG.info(sub['lang'] + " - " + sub['subtitlepath'])
-            LOG.info("*"*50)
+            LOG.info("*" * 50)
 
 
 def main():
@@ -164,7 +164,7 @@ def recursive_search(entry, options):
             # Add it to the list only if there is not already one (or forced)
             basepath = os.path.splitext(entry)[0]
             if (options.force_download or not
-                (os.path.exists(basepath+'.srt') or
+                (os.path.exists(basepath + '.srt') or
                  os.path.exists(basepath + '.sub'))):
                 files.append(os.path.normpath(entry))
             else:

@@ -5,9 +5,9 @@
 #   Copyright (c) 2008-2011 Patrick Dessalle <patrick@dessalle.be>
 #
 #    periscope is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as published by
-#    the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
+#    it under the terms of the GNU Lesser General Public License
+#    as published by the Free Software Foundation;
+#    either version 2 of the License, or (at your option) any later version.
 #
 #    periscope is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -19,14 +19,12 @@
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 from __future__ import absolute_import
 
-import sys
 import os
 import threading
 import logging
 from locale import getdefaultlocale
 from Queue import Queue
 
-import traceback
 import ConfigParser
 
 import periscope.plugins as plugins
@@ -64,13 +62,13 @@ def select_best_subtitles(subtitles, langs=None, interactive=False):
 
     if not interactive:
         for lang in langs:
-            if subtitles.has_key(lang) and len(subtitles[lang]):
+            if lang in subtitles and len(subtitles[lang]):
                 return subtitles[lang][0]
 
     else:
         interactive_subtitles = []
         for lang in langs:
-            if subtitles.has_key(lang) and len(subtitles[lang]):
+            if lang in subtitles and len(subtitles[lang]):
                 for sub in subtitles[lang]:
                     interactive_subtitles.append(sub)
 
@@ -105,10 +103,10 @@ class Periscope(object):
     def __init__(self, cache_folder=None):
         self.config = ConfigParser.SafeConfigParser({
             "lang": "",
-             "plugins" : "",
-             "lang-in-name": "no",
+            "plugins": "",
+            "lang-in-name": "no",
         })
-        LOG.info("Log level : %s" % LOG.getEffectiveLevel())
+        LOG.info("Log level : {}".format(LOG.getEffectiveLevel()))
         self.config_file = os.path.join(cache_folder, "config")
         self.cache_path = cache_folder
 
@@ -132,9 +130,9 @@ class Periscope(object):
         config_lang = self.config.get("DEFAULT", "lang")
         LOG.info("lang read from config: " + config_lang)
         if config_lang == "":
-            try :
+            try:
                 return [getdefaultlocale()[0][:2]]
-            except ValueError:
+            except Exception:
                 return ["en"]
         else:
             return [x.strip() for x in config_lang.split(",")]
@@ -175,8 +173,8 @@ class Periscope(object):
         """ Update the config file to set the prefered naming convention. """
         self.config.set(
             'DEFAULT',
-             'lang-in-name',
-              'yes' if lang_in_name else 'no')
+            'lang-in-name',
+            'yes' if lang_in_name else 'no')
         config_file = open(self.config_file, "w")
         self.config.write(config_file)
         config_file.close()
@@ -195,7 +193,8 @@ class Periscope(object):
     def activate_plugin(self, plugin):
         """ Activate a plugin. """
         if plugin not in self.list_existing_plugins():
-            raise ImportError("No plugin with the name %s exists" %plugin)
+            raise ImportError("No plugin with the name {} exists".
+                format(plugin))
         self.plugins += plugin
         self.set_prefered_plugins(self.plugins)
 
@@ -218,15 +217,15 @@ class Periscope(object):
         subtitles = []
         queue = Queue()
         for plugin_name in self.plugins:
-            try :
+            try:
                 plugin_class = getattr(plugins, plugin_name)
                 plugin = plugin_class(self.config, self.cache_path)
                 LOG.info("Searching on {}".format(plugin.__class__.__name__))
                 thread = threading.Thread(
-                    target=plugin.searchInThread,
+                    target=plugin.search_in_thread,
                     args=(queue, filename, langs))
                 thread.start()
-            except ImportError :
+            except ImportError:
                 LOG.error("Plugin %s is not a valid plugin name. Skipping it.")
 
         # Get data from the queue and wait till we have a result
@@ -239,14 +238,14 @@ class Periscope(object):
                     for sub in subs:
                         if sub["lang"] in langs:
                             subtitles.append(sub)
-        LOG.debug("%s subtitles has been returned." % len(subtitles))
+        LOG.debug("{} subtitles has been returned." .format(len(subtitles)))
         return subtitles
 
     def download_subtitle(self, filename,
                           langs=None, interactive=False):
         """ Dowload only the best subtitle for the file.
 
-        If interactive is set tu true, the user will be asked to choose.
+        If interactive is set to true, the user will be asked to choose.
         """
         subtitles = self.list_subtitles(filename, langs)
         return self.attempt_download_subtitle(subtitles,
@@ -261,14 +260,14 @@ class Periscope(object):
 
         LOG.info("Trying to download subtitle: {}".format(subtitle['link']))
         try:
-            subpath = subtitle["plugin"].createFile(subtitle)
+            subpath = subtitle["plugin"].create_file(subtitle)
             if subpath:
                 subtitle["subtitlepath"] = subpath
                 return subtitle
             else:
                 raise Exception("Not downloaded")
-        except Exception, e:
-            LOG.exception(e)
+        except Exception, err:
+            LOG.exception(err)
             LOG.warn(("Subtitle {} could not be downloaded, "
                       "trying the next on the list").format(subtitle['link']))
             subtitles.remove(subtitle)

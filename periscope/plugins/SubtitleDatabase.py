@@ -24,7 +24,7 @@ import struct
 import re
 # from abc import ABCMeta, abstractmethod, abstractproperty
 
-log = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 # TODO : make the class abstract
@@ -56,21 +56,22 @@ class SubtitleDB(object):
                                       '(?P<year>(?:(?:19|20)[0-9]{2}))'
                                       '(?P<teams>.*)'), re.IGNORECASE)
 
-    def searchInThread(self, queue, filename, langs):
+    def search_in_thread(self, queue, filename, langs):
         """ Append subtitles to the queue. """
         try:
             subs = self.process(filename, langs)
-            map(lambda item: item.setdefault("plugin", self), subs)
-            map(lambda item: item.setdefault("filename", filename), subs)
-            log.info("{} writing {} items to queue".format(self, len(subs)))
+            for sub in subs:
+                sub.setdefault("plugin", self)
+                sub.setdefault("filename", filename)
+            LOG.info("{} writing {} items to queue".format(self, len(subs)))
         except:
-            log.exception("Error occured")
+            LOG.exception("Error occured")
             subs = []
         # Each plugin must write something
         # The caller periscope.py waits for a result on the queue
         queue.put(subs, True)
 
-    def createFile(self, subtitle):
+    def create_file(self, subtitle):
         """ Download subtile, unzip and create the subtitle file. """
         suburl = subtitle["link"]
         videofilename = subtitle["filename"]
@@ -79,44 +80,46 @@ class SubtitleDB(object):
         self.downloadFile(suburl, zipfilename)
 
         if zipfile.is_zipfile(zipfilename):
-            log.debug("Unzipping file " + zipfilename)
-            zf = zipfile.ZipFile(zipfilename, "r")
-            for el in zf.infolist():
-                if el.orig_filename.rsplit(".", 1)[1] in ("srt", "sub", "txt"):
+            LOG.debug("Unzipping file " + zipfilename)
+            unzipped_file = zipfile.ZipFile(zipfilename, "r")
+
+            for elem in unzipped_file.infolist():
+                extension = elem.orig_filename.rsplit(".", 1)[1]
+                if extension in ("srt", "sub", "txt"):
                     outfile = open(srtbasefilename + "." +
-                                   el.orig_filename.rsplit(".", 1)[1], "wb")
-                    outfile.write(zf.read(el.orig_filename))
+                                   extension, "wb")
+                    outfile.write(unzipped_file.read(elem.orig_filename))
                     outfile.flush()
                     outfile.close()
                 else:
-                    log.info("File {} does not seem to be valid ".
-                             format(el.orig_filename))
+                    LOG.info("File {} does not seem to be valid ".
+                             format(elem.orig_filename))
             # Deleting the zip file
-            zf.close()
+            unzipped_file.close()
             os.remove(zipfilename)
             return srtbasefilename + ".srt"
         else:
-            log.info("Unexpected file type (not zip)")
+            LOG.info("Unexpected file type (not zip)")
             os.remove(zipfilename)
             return None
 
-    def getLG(self, language):
+    def get_lang(self, language):
         """ Return a language two character code from its long naming. """
         try:
             return self.revertlangs[language]
         except KeyError:
-            log.warn(("Ooops, you found a missing language in the config file"
+            LOG.warn(("Ooops, you found a missing language in the config file"
                       " of {}: {}. Send a bug report to have it added.".
                       format(self.__class__.__name__, language)))
 
-    def getLanguage(self, lg):
+    def get_language(self, lang):
         """ Return a language long naming from its two character code. """
         try:
-            return self.langs[lg]
+            return self.langs[lang]
         except KeyError:
-            log.warn(("Ooops, you found a missing language in the config file"
+            LOG.warn(("Ooops, you found a missing language in the config file"
                       " of {}: {}. Send a bug report to have it added.".
-                      format(self.__class__.__name__, lg)))
+                      format(self.__class__.__name__, lang)))
 
     # @abstractmethod
     def process(self, filepath, langs):
@@ -138,7 +141,7 @@ class SubtitleDB(object):
         """ Postprocess the raw result to fit to a common pattern. """
         pass
 
-    def guessFileData(self, filename):
+    def guess_file_data(self, filename):
         """ Return the more relevent information for the file name. """
         filename = unicode(self.getFileName(filename).lower())
         matches_tvshow = self.tvshowRegex.match(filename)
@@ -173,39 +176,39 @@ class SubtitleDB(object):
         # No relevant information were found from the file name
         return {'type': 'unknown', 'name': filename, 'teams': []}
 
-    def hashFile(self, file_path):
+    def hash_file(self, file_path):
         """ Return the hash of the file as used by OpenSubtitles.
 
         The method is defined on OpenSubtitles API (link below)
-        http://trac.opensubtitles.org/projects/opensubtitles/wiki/HashSourceCodes#Python
+        http://trac.opensubtitles.org/projects/opensubtitles/
+        wiki/HashSourceCodes#Python
         """
         try:
             longlongformat = 'q'  # long long
             bytesize = struct.calcsize(longlongformat)
 
-            f = open(file_path, "rb")
-            filesize = os.path.getsize(file_path)
-            hash = filesize
+            input_file = open(file_path, "rb")
+            file_size = os.path.getsize(file_path)
+            file_hash = file_size
 
-            if filesize < 65536 * 2:
+            if file_size < 65536 * 2:
                 return "SizeError"
 
-            for x in range(65536/bytesize):
-                buffer = f.read(bytesize)
-                (l_value,) = struct.unpack(longlongformat, buffer)
-                hash += l_value
-                hash = hash & 0xFFFFFFFFFFFFFFFF  # to remain as 64bit number
+            for _ in range(65536 / bytesize):
+                file_buffer = input_file.read(bytesize)
+                (l_value,) = struct.unpack(longlongformat, file_buffer)
+                file_hash += l_value
+                file_hash = file_hash & 0xFFFFFFFFFFFFFFFF
 
-            f.seek(max(0, filesize-65536), 0)
-            for x in range(65536/bytesize):
-                buffer = f.read(bytesize)
-                (l_value,) = struct.unpack(longlongformat, buffer)
-                hash += l_value
-                hash = hash & 0xFFFFFFFFFFFFFFFF
+            input_file.seek(max(0, file_size - 65536), 0)
+            for _ in range(65536 / bytesize):
+                file_buffer = input_file.read(bytesize)
+                (l_value,) = struct.unpack(longlongformat, file_buffer)
+                file_hash += l_value
+                file_hash = file_hash & 0xFFFFFFFFFFFFFFFF
 
-            f.close()
-            returnedhash = "%016x" % hash
-            return returnedhash
+            input_file.close()
+            return "%016x" % file_hash
 
         except(IOError):
             return "IOError"
