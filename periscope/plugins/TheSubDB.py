@@ -98,7 +98,7 @@ class TheSubDB(SubtitleDB):
         suburl = subtitle["link"]
         videofilename = subtitle["filename"]
         srtfilename = videofilename.rsplit(".", 1)[0] + '.srt'
-        self.downloadFile(suburl, srtfilename)
+        self.download_file(suburl, srtfilename)
         return srtfilename
 
     def download_file(self, url, srtfilename):
