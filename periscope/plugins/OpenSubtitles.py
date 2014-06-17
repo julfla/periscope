@@ -1,21 +1,7 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#   This file is part of periscope.
-#   Copyright (c) 2008-2011 Patrick Dessalle <patrick@dessalle.be>
-#
-#    periscope is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as published
-#     by the Free Software Foundation; either version 2 of the License, or
-#    (at your option) any later version.
-#
-#    periscope is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with periscope; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+""" Plugin to enable periscope to donwload subtiles from OpenSubtitles. """
 
 import os
 import xmlrpclib
@@ -23,10 +9,6 @@ import logging
 import socket  # For timeout purposes
 import gzip
 from periscope.helper import download_file
-# import struct
-# import commands
-# import traceback
-
 from periscope.plugins.SubtitleDatabase import SubtitleDB
 
 LOG = logging.getLogger(__name__)
@@ -111,7 +93,7 @@ class OpenSubtitles(SubtitleDB):
         socket.setdefaulttimeout(None)
 
     def process(self, file_path, langs):
-        """ Get a list of subtitles for the file in the wanted languages. """
+        """ Get a list of subtitles in the wanted languages. """
         LOG.info("Processing {} for languages {}".format(file_path, langs))
         langs_id = ",".join([self.get_language(lang) for lang in langs])
         search_params = {'moviehash': self.hash_file(file_path),
@@ -151,21 +133,3 @@ class OpenSubtitles(SubtitleDB):
             sub["page"] = sub["link"]
             sub["lang"] = self.get_lang(sub.pop('SubLanguageID'))
         return data
-
-    # def sort_by_moviereleasename(self, x, y):
-    #     ''' sorts based on the movierelease name tag. More matching, returns 1'''
-    #     #TODO add also support for subtitles release
-    #     xmatch = x['MovieReleaseName'] and (x['MovieReleaseName'].find(self.filename)>-1 or self.filename.find(x['MovieReleaseName'])>-1)
-    #     ymatch = y['MovieReleaseName'] and (y['MovieReleaseName'].find(self.filename)>-1 or self.filename.find(y['MovieReleaseName'])>-1)
-    #     #print "analyzing %s and %s = %s and %s" %(x['MovieReleaseName'], y['MovieReleaseName'], xmatch, ymatch)
-    #     if xmatch and ymatch:
-    #         if x['MovieReleaseName'] == self.filename or x['MovieReleaseName'].startswith(self.filename) :
-    #             return -1
-    #         return 0
-    #     if not xmatch and not ymatch:
-    #         return 0
-    #     if xmatch and not ymatch:
-    #         return -1
-    #     if not xmatch and ymatch:
-    #         return 1
-    #     return 0
