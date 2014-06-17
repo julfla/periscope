@@ -39,7 +39,7 @@ def download_subtitle(periscope_client, videos, options):
     subs = []
     for arg in videos:
         if not options.langs:  # Look into the config file
-            LOG.info("No lang given, looking into config file")
+            LOG.info(" No lang given, looking into config file")
             langs = periscope_client.prefered_languages
         else:
             langs = options.langs
@@ -51,9 +51,9 @@ def download_subtitle(periscope_client, videos, options):
         exit(1)
     else:
         LOG.info("*" * 50)
-        LOG.info("Downloaded {} subtitles".format(len(subs)))
+        LOG.info(" Downloaded {} subtitles".format(len(subs)))
         for sub in subs:
-            LOG.info(sub['lang'] + " - " + sub['subtitlepath'])
+            LOG.info(" " + sub['lang'] + " - " + sub['subtitlepath'])
             LOG.info("*" * 50)
 
 
@@ -122,14 +122,14 @@ def main():
         print "Active plugins: "
         plugins = periscope_client.list_active_plugins()
         for plugin in plugins:
-            print plugin
+            print "- " + plugin.__name__
         exit()
 
     if options.show_plugins:
         print "All plugins: "
         plugins = periscope_client.list_existing_plugins()
         for plugin in plugins:
-            print plugin
+            print "- " + plugin.__name__
         exit()
 
     if options.queries:
@@ -153,8 +153,8 @@ def recursive_search(entry, options):
     if os.path.isdir(entry):
         # TODO if hidden folder, don't keep going
         # (how to handle windows/mac/linux ?)
-        for e in os.listdir(entry):
-            files += recursive_search(os.path.join(entry, e), options)
+        for ent in os.listdir(entry):
+            files += recursive_search(os.path.join(entry, ent), options)
 
     elif os.path.isfile(entry):
         # Add mkv mimetype to the list
@@ -168,9 +168,9 @@ def recursive_search(entry, options):
                  os.path.exists(basepath + '.sub'))):
                 files.append(os.path.normpath(entry))
             else:
-                LOG.info(("Skipping file %s as it already has a subtitle. "
-                          "Use the --force option to force the download")
-                         % entry)
+                LOG.info(("Skipping file {} as it already has a subtitle. "
+                          "Use the --force option to force the download").
+                format(entry))
         else:
             LOG.warn(("{} mimetype is '{}' which is not a supported"
                       " video format ({})").format(entry,

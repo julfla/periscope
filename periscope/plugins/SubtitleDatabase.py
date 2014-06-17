@@ -112,7 +112,7 @@ class SubtitleDB(object):
         pass
 
     # @abstractmethod
-    def query(self, token):
+    def query(self, token, langs=None):
         """ Behaviour not understood. """
         pass
 

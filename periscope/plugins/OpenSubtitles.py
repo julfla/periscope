@@ -8,12 +8,13 @@ import xmlrpclib
 import logging
 import socket  # For timeout purposes
 import gzip
+
 from periscope.helper import download_file
 from periscope.plugins.SubtitleDatabase import SubtitleDB
 
 LOG = logging.getLogger(__name__)
 
-# TODO : get this hash from OpenSubtitle itself and cache it.
+# TODO : get this dict from OpenSubtitle itself and cache it.
 OS_LANGS = {"en": "eng",
             "fr": "fre",
             "hu": "hun",
@@ -94,19 +95,19 @@ class OpenSubtitles(SubtitleDB):
 
     def process(self, file_path, langs):
         """ Get a list of subtitles in the wanted languages. """
-        LOG.info("Processing {} for languages {}".format(file_path, langs))
+        LOG.info(" Processing {} for languages {}".format(file_path, langs))
         langs_id = ",".join([self.get_language(lang) for lang in langs])
         search_params = {'moviehash': self.hash_file(file_path),
                          'moviebytesize': os.path.getsize(file_path),
                          # 'file_basename': file_basename(file_path),
                          'sublanguageid': langs_id}
         try:
-            LOG.debug("Querying with arguments : {}".format(search_params))
+            LOG.debug(" Querying with arguments : {}".format(search_params))
             response = self.server.SearchSubtitles(self.token, [search_params])
-            LOG.debug("status: {}, {} subtitles".
+            LOG.debug(" status: {}, {} subtitles".
                       format(response['status'], len(response['data'])))
         except Exception, err:
-            LOG.error("Could not query the server OpenSubtitles")
+            LOG.error(" Could not query the server OpenSubtitles")
             LOG.debug(err)
             return []
         return self.post_process_results(response['data'])

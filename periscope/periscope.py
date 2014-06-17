@@ -104,7 +104,7 @@ class Periscope(object):
                 value = [x.strip() for x in value.split(",")]
             else:
                 value = []
-        LOG.info("Read config {} : {}".format(config, value))
+        LOG.info(" Read config {} : {}".format(config, value))
         return value
 
     @property
@@ -114,9 +114,11 @@ class Periscope(object):
         if not value:
             try:
                 value = [getdefaultlocale()[0][:2]]
-            except IndexError:
+            except (IndexError, ValueError):
                 value = DEFAULT_LANG
+                LOG.info(" Default value lang : {}".format(value))
         return value
+
     @prefered_languages.setter
     def prefered_languages(self, value):
         """ Set prefered_languages value in config. """
@@ -129,6 +131,7 @@ class Periscope(object):
         if not value:
             value = self.list_existing_plugins()
         return value
+
     @prefered_plugins.setter
     def prefered_plugins(self, value):
         """ Set prefered_plugins value in config. """
@@ -141,6 +144,7 @@ class Periscope(object):
             return bool(self._get_config_value("lang-in-name"))
         except ValueError:
             return False
+
     @prefered_naming.setter
     def prefered_naming(self, value):
         """ Set prefered_naming value in config. """
@@ -171,21 +175,21 @@ class Periscope(object):
 
     def list_subtitles(self, filename, langs=None):
         """ Return all matching subtitles using the active plugins. """
-        LOG.info("Searching subtitles for {} with langs {}".
+        LOG.info(" Searching subtitles for {} with langs {}".
                  format(filename, langs))
         subtitles = []
         queue = Queue()
-        for plugin_name in self.plugins:
+        for plugin_class in self.plugins:
             try:
-                plugin_class = getattr(plugins, plugin_name)
                 plugin = plugin_class(self.config, self.cache_path)
-                LOG.info("Searching on {}".format(plugin.__class__.__name__))
+                LOG.info(" Searching on {}".format(plugin_class.__name__))
                 thread = threading.Thread(
                     target=plugin.search_in_thread,
                     args=(queue, filename, langs))
                 thread.start()
             except ImportError:
-                LOG.error("Plugin %s is not a valid plugin name. Skipping it.")
+                LOG.error("Plugin {} is not a valid plugin name. Skipping it.".
+                    format(plugin_class.__name__))
 
         # Get data from the queue and wait till we have a result
         for _ in self.plugins:
