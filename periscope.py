@@ -136,7 +136,7 @@ def main():
         args += options.queries
 
     if not args:
-        print "No video file supplied."
+        LOG.error("No video file supplied.")
         print parser.print_help()
         exit()
 
